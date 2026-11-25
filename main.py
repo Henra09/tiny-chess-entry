@@ -103,10 +103,13 @@ def qs(p,a,b):
     up=p[1]=="w";s=p[4] if up else -p[4]
     if s>=b:return s
     if s>a:a=s
-    if any(p[0][m[1]]in"Kk"for m in moves(p)):return 9e8
-    for m in legal(p):
+    up=p[1]=="w";K="K" if up else "k"
+    for m in moves(p):
+        if p[0][m[1]]in"Kk":return 9e8
+        q=make(p,m)
+        if K not in q[0]:continue
         if p[0][m[1]]=="."and p[0][m[0]]not in"Pp":continue
-        v=-qs(make(p,m),-b,-a)
+        v=-qs(q,-b,-a)
         if v>a:a=v
         if a>=b:break
     return a
@@ -149,15 +152,20 @@ def ab(p,d,a,b):
     if d==0:return qs(p,a,b)
     ND+=1
     if ND>BUD or time.time()-T0>8:raise Stop
-    pm=moves(p)
-    if any(p[0][m[1]]in"Kk"for m in pm):return 9e8
-    ms=legal(p)
-    if not ms:
-        k=ksq(p)
-        return -9e8 if k is not None and atk((p[0],"b" if p[1]=="w" else "w",p[2],p[3],p[4]),k) else 0
-    ms=sorted(ms,key=lambda m:-V.get(p[0][m[1]],0)-(100 if m[2]else 0))
+    up=p[1]=="w";K="K" if up else "k"
+    ms=moves(p)
+    if any(p[0][m[1]]in"Kk"for m in ms):return 9e8
+    R=[]
     for m in ms:
-        v=-ab(make(p,m),d-1,-b,-a)
+        q=make(p,m)
+        if K not in q[0]:
+            if any(x in"Kk"for x in q[0])==False:pass
+            continue
+        R.append((m,q))
+    if not R:return -9e8
+    R.sort(key=lambda x:-V.get(p[0][x[0][1]],0)-(100 if x[0][2]else 0))
+    for m,q in R:
+        v=-ab(q,d-1,-b,-a)
         if v>a:a=v
         if a>=b:break
     return a
@@ -166,7 +174,7 @@ def uc(m):
     return"%s%d%s%d"%(chr(96+i%10),10-i//10,chr(96+j%10),10-j//10)
 def think(p,lg):
     global ND,BUD
-    BUD=100000;ND=0;T0=time.time()
+    BUD=400000;ND=0;T0=time.time()
     ls=set(lg)
     ms=[m for m in legal(p) if uc(m) in ls]
     if not ms:return lg[0]
