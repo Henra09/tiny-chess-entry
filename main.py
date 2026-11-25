@@ -55,18 +55,18 @@ def moves(p):
 def make(p,m):
     bd=list(p[0]);i,j,pr=m;up=p[1]=="w";sc=p[4]
     c=bd[i];t=bd[j];u=c.isupper();sgn=1 if u else -1
-    sc-=sgn*(V[c]+pst(c,ix(i)))
-    if t!=".":
+    sc-=sgn*(V[c.upper()]+pst(c,ix(i)))
+    if t not in".?":
         su=t.isupper()
-        sc-=(1 if su else -1)*(V[t]+pst(t,ix(j)))
+        sc-=(1 if su else -1)*(V[t.upper()]+pst(t,ix(j)))
     n=(pr or c)
     n=n.upper() if up else n.lower()
     bd[j]=n;bd[i]="."
-    sc+=sgn*(V[n]+pst(n,ix(j)))
+    sc+=sgn*(V[n.upper()]+pst(n,ix(j)))
     if c in"Pp"and i%10!=j%10and t==".":
         k=j+(10 if up else -10);x=bd[k];bd[k]="."
         sx=x.isupper()
-        sc-=(1 if sx else -1)*(V[x]+pst(x,ix(k)))
+        sc-=(1 if sx else -1)*(V[x.upper()]+pst(x,ix(k)))
     ep=(i+j)//2 if c in"Pp"and abs(j-i)==20 else None
     if c in"Kk"and abs(j-i)==2:
         a,b=(i+3,i+1) if j>i else (i-4,i-1)
