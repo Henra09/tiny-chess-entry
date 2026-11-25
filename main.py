@@ -95,7 +95,7 @@ def pos(f):
     ep=None if f[3]=="-" else 21+(10-int(f[3][1]))*10+ord(f[3][0])-96
     return bd,f[1],("" if f[2]=="-" else f[2]),ep,sc
 class Stop(Exception):pass
-ND=0;BUD=60000;T0=0
+ND=0;BUD=250000;T0=0
 def qs(p,a,b):
     global ND
     ND+=1
@@ -103,6 +103,7 @@ def qs(p,a,b):
     up=p[1]=="w";s=p[4] if up else -p[4]
     if s>=b:return s
     if s>a:a=s
+    if any(p[0][m[1]]in"Kk"for m in moves(p)):return 9e8
     for m in legal(p):
         if p[0][m[1]]=="."and p[0][m[0]]not in"Pp":continue
         v=-qs(make(p,m),-b,-a)
@@ -148,6 +149,8 @@ def ab(p,d,a,b):
     if d==0:return qs(p,a,b)
     ND+=1
     if ND>BUD or time.time()-T0>8:raise Stop
+    pm=moves(p)
+    if any(p[0][m[1]]in"Kk"for m in pm):return 9e8
     ms=legal(p)
     if not ms:
         k=ksq(p)
@@ -163,7 +166,7 @@ def uc(m):
     return"%s%d%s%d"%(chr(96+i%10),10-i//10,chr(96+j%10),10-j//10)
 def think(p,lg):
     global ND,BUD
-    BUD=60000;ND=0;T0=time.time()
+    BUD=100000;ND=0;T0=time.time()
     ls=set(lg)
     ms=[m for m in legal(p) if uc(m) in ls]
     if not ms:return lg[0]
