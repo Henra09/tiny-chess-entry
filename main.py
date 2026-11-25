@@ -1,4 +1,4 @@
-import json,os,sys,urllib.request
+import json,os,sys,time,urllib.request
 E=os.environ["MAKEFUN_ENV_URL"]
 def post(p,b):
     return json.load(urllib.request.urlopen(urllib.request.Request(E+p,data=json.dumps(b).encode(),headers={"content-type":"application/json"})))
@@ -15,6 +15,7 @@ def pst(c,i):
     return t[i if i<32 else 63-i]
 NO=range(21,99)
 NK=(-21,-19,-12,-8,8,12,19,21)
+KK=(-11,-10,-9,-1,1,9,10,11)
 KB=(-11,-9,9,11,-10,-1,1,10)
 def ix(i):return (i//10-2)*8+i%10-1
 def moves(p):
@@ -30,16 +31,16 @@ def moves(p):
             j=i+d
             if bd[j]==".":
                 R.append((i,j,"q" if pr else ""))
-                if i//10==(9 if up else 2)and bd[i+2*d]==".":R.append((i,i+2*d,""))
+                if i//10==(8 if up else 3)and bd[i+2*d]==".":R.append((i,i+2*d,""))
             for e in(-1,1):
                 j=i+d+e
                 t=bd[j]
                 if t!="."and t!="?"and t.isupper()!=up:R.append((i,j,"q" if pr else ""))
                 elif j==ep:R.append((i,j,""))
         elif U=="N"or U=="K":
-            for d in NK:
+            for d in NK if U=="N"else KK:
                 j=i+d
-                if bd[j]not in".?"and bd[j].isupper()==up:continue
+                if bd[j]=="?"or bd[j]not in".?"and bd[j].isupper()==up:continue
                 R.append((i,j,""))
         else:
             for d in KB:
@@ -78,6 +79,8 @@ def make(p,m):
     return bd,("b" if up else "w"),ca,ep,sc
 def pos(f):
     f=f.split();bd=["?"]*120
+    for i in range(21,99):
+        if 0<i%10<9:bd[i]="."
     for r,row in enumerate(f[0].split("/")):
         k=0
         for ch in row:
@@ -92,27 +95,63 @@ def pos(f):
     ep=None if f[3]=="-" else 21+(10-int(f[3][1]))*10+ord(f[3][0])-96
     return bd,f[1],("" if f[2]=="-" else f[2]),ep,sc
 class Stop(Exception):pass
-ND=0;BUD=60000
+ND=0;BUD=60000;T0=0
 def qs(p,a,b):
     global ND
     ND+=1
-    if ND>BUD:raise Stop
+    if ND>BUD or time.time()-T0>8:raise Stop
     up=p[1]=="w";s=p[4] if up else -p[4]
     if s>=b:return s
     if s>a:a=s
-    for m in moves(p):
+    for m in legal(p):
         if p[0][m[1]]=="."and p[0][m[0]]not in"Pp":continue
         v=-qs(make(p,m),-b,-a)
         if v>a:a=v
         if a>=b:break
     return a
+def atk(p,i):
+    up=p[1]=="w";bd=p[0]
+    for d in NK:
+        if bd[i+d]==("N" if up else "n"):return 1
+    for d in KB:
+        j=i+d
+        while bd[j]==".":
+            j+=d
+        c=bd[j]
+        if c!="."and c.isupper()==up:
+            C=c.upper()
+            if C in("B","Q")and d in(-11,-9,9,11)or C in("R","Q")and d in(-10,-1,1,10):return 1
+            if C=="K"and abs(d)in(1,10):return 1
+    if up:
+        if "P" in(bd[i+9],bd[i+11]):return 1
+    else:
+        if "p" in(bd[i-9],bd[i-11]):return 1
+    return 0
+def ksq(p):
+    up=p[1]=="w";K="K" if up else "k"
+    for i in NO:
+        if p[0][i]==K:return i
+    for i in range(120):
+        if p[0][i]==K:return i
+    return None
+def legal(p):
+    R=[];up=p[1]=="w";K="K" if up else "k"
+    for m in moves(p):
+        q=make(p,m)
+        k=None
+        for i in range(120):
+            if q[0][i]==K:k=i;break
+        if k is not None and not atk(q,k):R.append(m)
+    return R
 def ab(p,d,a,b):
     global ND
     if d==0:return qs(p,a,b)
     ND+=1
-    if ND>BUD:raise Stop
-    ms=moves(p)
-    if not ms:return 0
+    if ND>BUD or time.time()-T0>8:raise Stop
+    ms=legal(p)
+    if not ms:
+        k=ksq(p)
+        return -9e8 if k is not None and atk((p[0],"b" if p[1]=="w" else "w",p[2],p[3],p[4]),k) else 0
     ms=sorted(ms,key=lambda m:-V.get(p[0][m[1]],0)-(100 if m[2]else 0))
     for m in ms:
         v=-ab(make(p,m),d-1,-b,-a)
@@ -122,12 +161,12 @@ def ab(p,d,a,b):
 def uc(m):
     i,j=m[0],m[1]
     return"%s%d%s%d"%(chr(96+i%10),10-i//10,chr(96+j%10),10-j//10)
-def think(p,legal):
+def think(p,lg):
     global ND,BUD
-    BUD=60000;ND=0
-    ls=set(legal)
-    ms=[m for m in moves(p) if uc(m) in ls]
-    if not ms:return legal[0]
+    BUD=60000;ND=0;T0=time.time()
+    ls=set(lg)
+    ms=[m for m in legal(p) if uc(m) in ls]
+    if not ms:return lg[0]
     best=ms[0]
     try:
         for d in range(1,10):
