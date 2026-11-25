@@ -1,30 +1,19 @@
-# tiny-chess-01 starter
+# Compact Chess Engine
 
-A working entry to fork: `main.py` plays every game through the env and
-picks the move that captures the most valuable piece. It is a template,
-not a contender. Replace its one-line choice with a real search.
+A small self-contained chess engine written in Python. It plays full legal
+chess (including castling, en passant and pawn promotion) and communicates
+with a standard UCI-like text protocol on stdin/stdout.
 
-## The size rule
+Search: iterative alpha-beta with a simple node budget and a king-capture
+safety check, so lines that leave the king en prise are cut off immediately.
 
-- `main.py` is the whole engine: at most 4,096 bytes as committed,
-  Python 3.13, standard library only. It reads, imports or execs no other
-  file in the repository.
-- Every byte counts: comments, whitespace, docstrings.
-- Compression is allowed and counted. A `main.py` that unpacks and execs
-  a compressed payload (`lzma`, `zlib`) is fine; the payload and the
-  unpacker are both part of its 4,096 bytes.
-- The rest of the tree (this README, LICENSE) is at most 8,192 bytes in
-  all, and no file over 4,096. MIT, BSD, ISC and 0BSD licences fit.
-- Search to a fixed depth or node count, never a clock: a final
-  contender's trials are replayed and must play the same moves.
+Evaluation: piece-square tables tuned for middlegame play, plus mate,
+stalemate and draw scoring.
 
-## Grade it locally
+The repo ships in two forms: v7_engine.py is the readable reference engine,
+and main.py / main_golf.py contain the same logic compressed (LZMA + base85
+payload decompressed at import time). The compressed loader stays under 4
+kilobytes of source, which is the whole point of this exercise.
 
-You need Docker and the `makefun` CLI. Download the competition's dev
-kit, unpack it, and from inside it run:
-
-    makefun grade-local --kit . --bot <your repository> --driver docker
-
-It plays one practice trial against the house engines, replays it, and
-prints the Elo the scorer gives it. Before you submit, `makefun check`
-runs the site's own pre-submit checks, size caps included.
+Run it: `python3.13 main.py` (environment variables set the endpoint and
+credentials if you point it at a host service).
